@@ -39,35 +39,11 @@ public class ClientController {
 //        return ResponseEntity.status(response.getCode()).body(response);
 //    }
 
-    @PostMapping(value = "/register", consumes = {"multipart/form-data"})
-    public ResponseEntity<ApiResponse<Map<String, String>>> registerClient(
-            @RequestParam("companyName") String companyName,
-            @RequestParam("email") String email,
-            @RequestParam("mobileNumber") String mobileNumber,
-            @RequestParam("password") String password,
-            @RequestParam("domain") String domain,
-            @RequestParam("address") String address,
-            @RequestParam("country") String country,
-            @RequestParam("state") String state,
-            @RequestParam("postalCode") String postalCode,
-            @RequestParam("certificateFile") MultipartFile certificateFile,
-            @RequestParam("logoFile") MultipartFile logoFile
-    ) {
-        ClientSignupRequest request = new ClientSignupRequest();
-        request.setCompanyName(companyName);
-        request.setEmail(email);
-        request.setMobileNumber(mobileNumber);
-        request.setPassword(password);
-        request.setDomain(domain);
-        request.setAddress(address);
-        request.setCountry(country);
-        request.setState(state);
-        request.setPostalCode(postalCode);
-//        request.setCertificateFile(certificateFile);
-//        request.setLogoFile(logoFile);
+    @PostMapping(value = "/register", consumes = "multipart/form-data")
+    public ApiResponse signup(
+            @ModelAttribute ClientSignupRequest request) {
 
-        ApiResponse<Map<String, String>> response = clientService.registerClient(request);
-        return ResponseEntity.status(response.getCode()).body(response);
+        return clientService.registerClient(request);
     }
 
     @PostMapping("/login")
