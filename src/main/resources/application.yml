@@ -1,0 +1,81 @@
+
+spring:
+  application:
+    name: Start_up_crm_client_service
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: "62488757571-jn5d1cd162cc8dl6iuel5thihe3r2bjb.apps.googleusercontent.com"
+            client-secret: "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"
+            scope: profile, email
+            redirect-uri: http://localhost:8080/login/oauth2/code/google
+            authorization-grant-type: authorization_code
+            client-name: Google
+
+          facebook:
+            client-id: ${FACEBOOK_CLIENT_ID}
+            client-secret: ${FACEBOOK_CLIENT_SECRET}
+            redirect-uri: ${FACEBOOK_REDIRECT_URI}
+            scope: public_profile, email
+
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            redirect-uri: ${GITHUB_REDIRECT_URI}
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/startup_crm_client
+    username: "root"
+    password: "user"
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: "shaikjeelan533526@gmail.com"
+    password: "skyi gvsk knfu oopg"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+jwt:
+  secretKey: JcwXOFz8FiwKotBV9t4NY8SNNvm0dMsTyOMXGrbBg9Y=
+  expirationMs: 3600000
+  refreshExpirationMs: 86400000
+
+server:
+  port: 8088
+  address: 0.0.0.0
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/ # to register this service with service registry..
+
+debug: false
+
+logging:
+  level:
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: ERROR
+    org.springframework.security: WARN

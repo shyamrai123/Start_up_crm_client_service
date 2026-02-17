@@ -1,0 +1,10 @@
+package com.example.Start_up_crm_client_service.exception;
+
+import org.springframework.http.HttpStatus;
+
+public class InvalidCredentialsException extends CustomException {
+
+    public InvalidCredentialsException(String message) {
+        super(message, HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS");
+    }
+}
