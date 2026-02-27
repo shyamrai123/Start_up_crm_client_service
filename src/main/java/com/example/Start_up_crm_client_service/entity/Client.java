@@ -16,6 +16,7 @@ public class Client {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
     private String companyName;
 
     @Column(unique = true)
@@ -40,5 +41,6 @@ public class Client {
     private String logoPath;
 
     private String role;   // ROLE_ORG
+    @Column(name = "client_code", unique = true, nullable = false)
     private String  clientCode;
 }

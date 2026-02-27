@@ -32,10 +32,20 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
             throws ServletException, IOException {
-        if (request.getRequestURI().startsWith("/auth/")) {
+        String path = request.getServletPath();
+
+// ✅ Skip JWT for public endpoints
+        if (path.startsWith("/auth/") ||
+                path.equals("/api/client/login") ||
+                path.equals("/api/client/register") ||
+                path.equals("/api/hr/signup") ||
+                path.equals("/api/hr/login")) {
+
             filterChain.doFilter(request, response);
             return;
         }
+
+
 
         String token = extractTokenFromRequest(request);
         try {

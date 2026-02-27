@@ -107,6 +107,14 @@ public class JwtTokenUtil {
     }
 
 
+    public String generateToken(String username) {
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
+                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
 
     public String generateToken(String username, Long userId, Set<Role> roles) {
         String[] roleNames = roles.stream()
@@ -119,6 +127,17 @@ public class JwtTokenUtil {
                 .claim("id", userId)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
+                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
+    public String generateRefreshToken(String username) {
+
+        long refreshExpiration = 7 * 24 * 60 * 60 * 1000L; // 7 days
+
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration))
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }

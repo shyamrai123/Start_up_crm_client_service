@@ -4,7 +4,10 @@ import com.example.Start_up_crm_client_service.dto.ClientLoginRequest;
 import com.example.Start_up_crm_client_service.dto.ClientSignupRequest;
 import com.example.Start_up_crm_client_service.dto.ApiResponse;
 import com.example.Start_up_crm_client_service.entity.Client;
+import com.example.Start_up_crm_client_service.entity.Role;
 import com.example.Start_up_crm_client_service.repository.ClientRepository;
+import com.example.Start_up_crm_client_service.service.ClientNotificationService;
+import com.example.Start_up_crm_client_service.util.JwtTokenUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,15 +20,16 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 
-import static com.example.Start_up_crm_client_service.entity.Client.*;
-
 @Service
 @RequiredArgsConstructor
 public class ClientServiceImpl implements ClientService {
 
     private final ClientRepository clientRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenUtil jwtTokenUtil;
+    private final ClientNotificationService clientNotificationService; // ✅ Injected
 
+    // ✅ Generate unique 6-digit client code
     private String generateUniqueClientCode() {
         String code;
         do {
@@ -35,29 +39,61 @@ public class ClientServiceImpl implements ClientService {
         return code;
     }
 
+    // =====================================================
+    // ✅ REGISTER CLIENT
+    // =====================================================
+
     @Override
     public ApiResponse<Map<String, String>> registerClient(ClientSignupRequest request) {
+
+        List<String> errors = new ArrayList<>();
+
         if (clientRepository.existsByEmail(request.getEmail())) {
-            return ApiResponse.error("Email already exists", HttpStatus.BAD_REQUEST.value());
+            errors.add("Email already exists");
+        }
+
+        if (clientRepository.existsByCompanyName(request.getCompanyName())) {
+            errors.add("Company name already exists");
+        }
+
+        if (!errors.isEmpty()) {
+            return ApiResponse.error(
+                    String.join(", ", errors),
+                    HttpStatus.BAD_REQUEST.value()
+            );
         }
 
         try {
+
             String uploadDir = "uploads/";
             Files.createDirectories(Path.of(uploadDir));
 
-            // Save certificate
+            // ✅ Save certificate (null-safe)
+            String certFileName = null;
             MultipartFile certFile = request.getCertificateFile();
-            String certFileName = System.currentTimeMillis() + "_" + StringUtils.cleanPath(certFile.getOriginalFilename());
-            Path certPath = Path.of(uploadDir + certFileName);
-            Files.copy(certFile.getInputStream(), certPath, StandardCopyOption.REPLACE_EXISTING);
+            if (certFile != null && !certFile.isEmpty()) {
+                certFileName = System.currentTimeMillis() + "_" +
+                        StringUtils.cleanPath(certFile.getOriginalFilename());
 
-            // Save logo
+                Path certPath = Path.of(uploadDir + certFileName);
+                Files.copy(certFile.getInputStream(), certPath,
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            // ✅ Save logo (null-safe)
+            String logoFileName = null;
             MultipartFile logoFile = request.getLogoFile();
-            String logoFileName = System.currentTimeMillis() + "_" + StringUtils.cleanPath(logoFile.getOriginalFilename());
-            Path logoPath = Path.of(uploadDir + logoFileName);
-            Files.copy(logoFile.getInputStream(), logoPath, StandardCopyOption.REPLACE_EXISTING);
+            if (logoFile != null && !logoFile.isEmpty()) {
+                logoFileName = System.currentTimeMillis() + "_" +
+                        StringUtils.cleanPath(logoFile.getOriginalFilename());
 
-            Client client = builder()
+                Path logoPath = Path.of(uploadDir + logoFileName);
+                Files.copy(logoFile.getInputStream(), logoPath,
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            // ✅ Save Client
+            Client client = Client.builder()
                     .clientCode(generateUniqueClientCode())
                     .companyName(request.getCompanyName())
                     .email(request.getEmail())
@@ -68,37 +104,87 @@ public class ClientServiceImpl implements ClientService {
                     .country(request.getCountry())
                     .state(request.getState())
                     .postalCode(request.getPostalCode())
-                    .certificatePath(String.valueOf(request.getCertificateFile()))
-                    .logoPath(String.valueOf(request.getLogoFile()))
+                    .certificatePath(certFileName)
+                    .logoPath(logoFileName)
                     .role("ROLE_ORG")
                     .build();
 
             Client saved = clientRepository.save(client);
 
-            return ApiResponse.success("Registration Successful. Company ID: " + saved.getId(), null, HttpStatus.CREATED.value());
+            // ✅ Send Registration Email (Safe Execution)
+            try {
+                clientNotificationService.sendClientRegistrationMail(saved.getEmail());
+            } catch (Exception mailException) {
+                mailException.printStackTrace();
+                // Do NOT fail registration if email fails
+            }
+
+            return ApiResponse.success(
+                    "Registration Successful. Company ID: " + saved.getId(),
+                    null,
+                    HttpStatus.CREATED.value()
+            );
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ApiResponse.error("Internal Server Error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ApiResponse.error(
+                    "Internal Server Error: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR.value()
+            );
         }
     }
 
+    // =====================================================
+    // ✅ LOGIN CLIENT
+    // =====================================================
+
     @Override
     public ApiResponse<Map<String, String>> loginClient(ClientLoginRequest request) {
-        Optional<Client> optionalClient = clientRepository.findByEmail(request.getEmail());
+
+        Optional<Client> optionalClient =
+                clientRepository.findByClientCodeAndEmail(
+                        request.getClientCode(),
+                        request.getEmail()
+                );
+
         if (optionalClient.isEmpty()) {
-            return ApiResponse.error("Invalid Email or Password", HttpStatus.UNAUTHORIZED.value());
+            return ApiResponse.error(
+                    "Invalid Client ID or Email",
+                    HttpStatus.UNAUTHORIZED.value()
+            );
         }
 
         Client client = optionalClient.get();
+
         if (!passwordEncoder.matches(request.getPassword(), client.getPassword())) {
-            return ApiResponse.error("Invalid Email or Password", HttpStatus.UNAUTHORIZED.value());
+            return ApiResponse.error(
+                    "Invalid Password",
+                    HttpStatus.UNAUTHORIZED.value()
+            );
         }
 
-        Map<String, String> response = new HashMap<>();
-        response.put("email", client.getEmail());
-        response.put("role", client.getRole());
+        // ✅ Create ROLE set for JWT
+        Set<Role> roles = new HashSet<>();
+        Role role = new Role();
+        role.setName(com.example.Start_up_crm_client_service.entity.RoleName.ROLE_ORG);
+        roles.add(role);
 
-        return ApiResponse.success("Login Successful", response, HttpStatus.OK.value());
+        // ✅ Generate JWT
+        String token = jwtTokenUtil.generateToken(
+                client.getEmail(),
+                client.getId(),
+                roles
+        );
+
+        Map<String, String> response = new HashMap<>();
+        response.put("token", token);
+        response.put("role", "ROLE_ORG");
+        response.put("clientCode", client.getClientCode());
+
+        return ApiResponse.success(
+                "Login Successful",
+                response,
+                HttpStatus.OK.value()
+        );
     }
 }

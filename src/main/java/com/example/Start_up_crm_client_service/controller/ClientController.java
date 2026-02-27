@@ -19,26 +19,6 @@ public class ClientController {
     private final ClientService clientService;
 
 
-
-//    @PostMapping("/register")
-//    public ResponseEntity<ApiResponse<Map<String, String>>> registerClient(
-//            @RequestBody ClientSignupRequest request) {
-//
-//        // request.certificatePath and request.logoPath should already contain uploaded file paths
-//        ApiResponse<Map<String, String>> response = clientService.registerClient(request);
-//
-//        return ResponseEntity.status(response.getCode()).body(response);
-//    }
-
-
-//    @PostMapping(value = "/register", consumes = "multipart/form-data")
-//    public ResponseEntity<ApiResponse<Map<String, String>>> registerClient(
-//            @ModelAttribute ClientSignupRequest request) {
-//
-//        ApiResponse<Map<String, String>> response = clientService.registerClient(request);
-//        return ResponseEntity.status(response.getCode()).body(response);
-//    }
-
     @PostMapping(value = "/register", consumes = {"multipart/form-data"})
     public ResponseEntity<ApiResponse<Map<String, String>>> registerClient(
             @RequestParam("companyName") String companyName,
@@ -50,8 +30,10 @@ public class ClientController {
             @RequestParam("country") String country,
             @RequestParam("state") String state,
             @RequestParam("postalCode") String postalCode,
-            @RequestParam("certificateFile") MultipartFile certificateFile,
-            @RequestParam("logoFile") MultipartFile logoFile
+//            @RequestParam("certificateFile") MultipartFile certificateFile,
+//            @RequestParam("logoFile") MultipartFile logoFile
+            @RequestParam(value = "certificateFile", required = false) MultipartFile certificateFile,
+            @RequestParam(value = "logoFile", required = false) MultipartFile logoFile
     ) {
         ClientSignupRequest request = new ClientSignupRequest();
         request.setCompanyName(companyName);
@@ -63,8 +45,8 @@ public class ClientController {
         request.setCountry(country);
         request.setState(state);
         request.setPostalCode(postalCode);
-//        request.setCertificateFile(certificateFile);
-//        request.setLogoFile(logoFile);
+        request.setCertificateFile(certificateFile);
+        request.setLogoFile(logoFile);
 
         ApiResponse<Map<String, String>> response = clientService.registerClient(request);
         return ResponseEntity.status(response.getCode()).body(response);
