@@ -3,6 +3,7 @@ package com.example.Start_up_crm_client_service.service;
 import com.example.Start_up_crm_client_service.dto.*;
 import com.example.Start_up_crm_client_service.entity.Client;
 import com.example.Start_up_crm_client_service.entity.ClientHr;
+import com.example.Start_up_crm_client_service.entity.Role;
 import com.example.Start_up_crm_client_service.repository.ClientHrRepository;
 import com.example.Start_up_crm_client_service.repository.ClientRepository;
 import com.example.Start_up_crm_client_service.service.ClientHrService;
@@ -13,6 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.Set;
+
+import com.example.Start_up_crm_client_service.entity.RoleName;
 
 @Service
 @RequiredArgsConstructor
@@ -29,45 +33,74 @@ public class ClientHrServiceImpl implements ClientHrService {
     @Override
     public HrResponse signup(ClientHrSignupRequest request) {
 
-        Optional<Client> clientOptional =
-                clientRepository.findById(request.getClientId());
+        Optional<Client> optionalClient =
+                clientRepository.findByClientCode(request.getClientCode());
 
-        if (clientOptional.isEmpty()) {
-            return new HrResponse(404, false,
-                    "Company not found", null);
+        if (optionalClient.isEmpty()) {
+            return new HrResponse(
+                    404,
+                    false,
+                    "Invalid Client Code. Company not found.",
+                    null
+            );
         }
 
-        // Check duplicate email under same company
+        Client client = optionalClient.get();
+
         if (clientHrRepository
-                .findByEmailAndClientId(
-                        request.getEmail(),
-                        request.getClientId())
+                .findByEmailAndClient_Id(request.getEmail(), client.getId())
                 .isPresent()) {
 
-            return new HrResponse(400, false,
-                    "HR already exists for this company", null);
+            return new HrResponse(
+                    400,
+                    false,
+                    "HR already exists for this company",
+                    null
+            );
         }
 
         ClientHr hr = ClientHr.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .client(clientOptional.get())
+                .clientCode(client.getClientCode())        // ✅ from client table
+                .companyName(client.getCompanyName())
+                .client(client)
                 .build();
 
         clientHrRepository.save(hr);
 
-        return new HrResponse(200, true,
-                "HR registered successfully", null);
+        return new HrResponse(
+                200,
+                true,
+                "HR Registration Successful",   // ✅ Updated message
+                null
+        );
     }
 
     // ========================
     // HR LOGIN
     // ========================
+
     @Override
     public HrResponse login(ClientHrLoginRequest request) {
 
-        Optional<ClientHr> optionalHr = clientHrRepository.findByEmailAndClientId(request.getEmail(),request.getClientId());
+        // 1️⃣ Check client by clientCode
+        Optional<Client> optionalClient =
+                clientRepository.findByClientCode(request.getClientCode());
+
+        if (optionalClient.isEmpty()) {
+            return new HrResponse(404, false, "Invalid Client Code", null);
+        }
+
+        Client client = optionalClient.get();
+
+        // 2️⃣ Find HR by email + clientId
+        Optional<ClientHr> optionalHr =
+                clientHrRepository.findByEmailAndClient_Id(
+                        request.getEmail(),
+                        client.getId()
+                );
 
         if (optionalHr.isEmpty()) {
             return new HrResponse(404, false, "HR not found", null);
@@ -75,10 +108,31 @@ public class ClientHrServiceImpl implements ClientHrService {
 
         ClientHr hr = optionalHr.get();
 
+        // 3️⃣ Validate password
         if (!passwordEncoder.matches(request.getPassword(), hr.getPassword())) {
-            return new HrResponse(401, false, "Invalid password", null);
+            return new HrResponse(401, false, "Invalid credentials", null);
         }
 
-        return new HrResponse(200, true, "Login successful", null);
+        // 4️⃣ Generate JWT Token
+
+
+        Role hrRole = new Role();
+        hrRole.setName(RoleName.ROLE_ORG);
+
+        Set<Role> roles = Set.of(hrRole);
+
+        String token = jwtTokenUtil.generateToken(
+                hr.getEmail(),
+                hr.getId(),
+                roles
+        );
+        return new HrResponse(
+                200,
+                true,
+                "Login successful",
+                token
+        );
     }
+
+
 }

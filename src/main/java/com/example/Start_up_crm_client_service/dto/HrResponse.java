@@ -13,4 +13,6 @@ public class HrResponse {
     private boolean success;
     private String message;
     private Object data;
+//    private String token;
+//    private String role;
 }
