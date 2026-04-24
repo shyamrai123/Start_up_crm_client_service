@@ -23,6 +23,7 @@ public class EmployeeController {
     private final EmployeeService employeeService;
     private final ClientHrService clientHrService;
 
+    // ── CREATE EMPLOYEE ─────────────────────────
     @PostMapping("/add")
     @PreAuthorize("hasAuthority('ROLE_ORG')")
     public ResponseEntity<EmployeeResponse> addEmployee(
@@ -40,6 +41,7 @@ public class EmployeeController {
         return ResponseEntity.ok(response);
     }
 
+    // ── GET ALL ─────────────────────────
     @GetMapping("/all")
     @PreAuthorize("hasAuthority('ROLE_ORG')")
     public ResponseEntity<List<EmployeeResponse>> getAll(Authentication authentication) {
@@ -54,6 +56,7 @@ public class EmployeeController {
         );
     }
 
+    // ── GET BY ID ─────────────────────────
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ORG')")
     public ResponseEntity<EmployeeResponse> getById(
@@ -70,6 +73,7 @@ public class EmployeeController {
         );
     }
 
+    // ── UPDATE ─────────────────────────
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ORG')")
     public ResponseEntity<EmployeeResponse> update(
@@ -88,6 +92,7 @@ public class EmployeeController {
         );
     }
 
+    // ── DELETE ─────────────────────────
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ORG')")
     public ResponseEntity<String> delete(
@@ -105,6 +110,7 @@ public class EmployeeController {
         return ResponseEntity.ok("Employee deleted successfully");
     }
 
+    // ── HR CONTEXT FETCH ─────────────────────────
     private Map<String, String> fetchHrData(Authentication authentication) {
 
         Object principal = authentication.getPrincipal();

@@ -6,10 +6,8 @@ import com.example.Start_up_crm_client_service.dto.ClientSignupRequest;
 import com.example.Start_up_crm_client_service.feign.AuthServiceClient;
 import com.example.Start_up_crm_client_service.service.ClientService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -21,7 +19,16 @@ public class ClientController {
     private final ClientService clientService;
     private final AuthServiceClient authServiceClient;
 
+    // ── REGISTER ─────────────────────────
+    @PostMapping(value = "/register", consumes = "multipart/form-data")
+    public ResponseEntity<ApiResponse<?>> signup(
+            @ModelAttribute ClientSignupRequest request) {
 
+        ApiResponse<?> response = clientService.registerClient(request);
+        return ResponseEntity.status(response.getCode()).body(response);
+    }
+
+    // ── LOGIN ─────────────────────────────
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<Map<String, String>>> loginClient(
             @RequestBody ClientLoginRequest request) {
@@ -31,6 +38,4 @@ public class ClientController {
 
         return ResponseEntity.status(response.getCode()).body(response);
     }
-
-
 }

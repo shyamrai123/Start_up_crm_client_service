@@ -7,7 +7,6 @@ import com.example.Start_up_crm_client_service.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.sql.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,9 +16,12 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
 
-    // ================= CREATE =================
+    // ───────────────────────── CREATE ─────────────────────────
     @Override
-    public EmployeeResponse addEmployee(AddEmployeeRequest request, String clientCode, String companyName) {
+    public EmployeeResponse addEmployee(
+            AddEmployeeRequest request,
+            String clientCode,
+            String companyName) {
 
         Employee employee = mapToEntity(request);
 
@@ -29,9 +31,11 @@ public class EmployeeServiceImpl implements EmployeeService {
         return mapToResponse(employeeRepository.save(employee));
     }
 
-    // ================= GET ALL =================
+    // ───────────────────────── READ ALL ─────────────────────────
     @Override
-    public List<EmployeeResponse> getByClientCodeAndCompany(String clientCode, String companyName) {
+    public List<EmployeeResponse> getByClientCodeAndCompany(
+            String clientCode,
+            String companyName) {
 
         return employeeRepository
                 .findByClientCodeAndCompanyName(clientCode, companyName)
@@ -40,7 +44,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .collect(Collectors.toList());
     }
 
-    // ================= GET BY ID =================
+    // ───────────────────────── GET BY ID ─────────────────────────
     @Override
     public EmployeeResponse getByIdAndClientCode(Long id, String clientCode) {
 
@@ -54,9 +58,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         return mapToResponse(emp);
     }
 
-    // ================= UPDATE =================
+    // ───────────────────────── UPDATE ─────────────────────────
     @Override
-    public EmployeeResponse updateEmployee(Long id, AddEmployeeRequest request, String clientCode) {
+    public EmployeeResponse updateEmployee(
+            Long id,
+            AddEmployeeRequest request,
+            String clientCode) {
 
         Employee emp = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
@@ -70,9 +77,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         return mapToResponse(employeeRepository.save(emp));
     }
 
-    // ================= DELETE =================
+    // ───────────────────────── DELETE ─────────────────────────
     @Override
-    public void deleteEmployee(Long id, String clientCode, String companyName) {
+    public void deleteEmployee(
+            Long id,
+            String clientCode,
+            String companyName) {
 
         Employee emp = employeeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
@@ -85,8 +95,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         employeeRepository.delete(emp);
     }
 
-    // ================= MAPPERS =================
-
+    // ───────────────────────── MAPPER: REQUEST → ENTITY ─────────────────────────
     private Employee mapToEntity(AddEmployeeRequest r) {
 
         Employee e = new Employee();
@@ -95,11 +104,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         e.setLastName(r.getLastName());
         e.setEmail(r.getEmail());
         e.setPhone(r.getPhone());
-        e.setGender(r.getGender());
-        e.setMaritalStatus(r.getMaritalStatus());
-        e.setDateOfBirth(r.getDateOfBirth());
-        e.setBloodGroup(r.getBloodGroup());
-
         e.setDepartment(r.getDepartment());
         e.setDesignation(r.getDesignation());
         e.setRole(r.getRole());
@@ -128,6 +132,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         return e;
     }
 
+    // ───────────────────────── UPDATE MAPPER ─────────────────────────
     private void updateEntity(Employee e, AddEmployeeRequest r) {
 
         if (r.getFirstName() != null) e.setFirstName(r.getFirstName());
@@ -140,6 +145,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (r.getStatus() != null) e.setStatus(r.getStatus());
     }
 
+    // ───────────────────────── RESPONSE MAPPER ─────────────────────────
     private EmployeeResponse mapToResponse(Employee e) {
 
         return EmployeeResponse.builder()
@@ -152,7 +158,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .designation(e.getDesignation())
                 .role(e.getRole())
                 .salary(e.getSalary())
-                .joiningDate(Date.valueOf(e.getJoiningDate()))
+                .joiningDate(e.getJoiningDate())
                 .build();
     }
 }

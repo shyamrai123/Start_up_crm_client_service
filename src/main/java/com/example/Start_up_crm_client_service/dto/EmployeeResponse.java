@@ -1,29 +1,35 @@
 package com.example.Start_up_crm_client_service.dto;
 
-
-import lombok.Data;
 import lombok.Builder;
+import lombok.Data;
 
-import java.sql.Date;
-
+import java.time.LocalDate;
 
 @Data
 @Builder
 public class EmployeeResponse {
 
     private Long id;
-    private String email;
-    private String clientCode;
 
+    // ── Identity ─────────────────────────
     private String firstName;
     private String lastName;
+    private String email;
     private String phone;
-    private String address;
-    private Date joiningDate;
+
+    // ── Work Info ─────────────────────────
     private String department;
     private String designation;
     private String role;
-
     private Double salary;
-    private String status;
+
+    // ── Employment Info ───────────────────
+    private LocalDate joiningDate;
+    private Boolean active;
+
+    // ── Optional Info ─────────────────────
+    private String address;
+
+    // ── Multi-tenant Info ─────────────────
+    private String clientCode;
 }

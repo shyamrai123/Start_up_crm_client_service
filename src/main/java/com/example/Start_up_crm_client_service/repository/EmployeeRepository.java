@@ -11,21 +11,26 @@ import java.util.Optional;
 
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
-    // Used by HR to list employees
+    // ── Tenant-based queries ─────────────────────────
     List<Employee> findByClientCode(String clientCode);
 
     List<Employee> findByClientCodeAndCompanyName(String clientCode, String companyName);
 
     Optional<Employee> findByEmail(String email);
 
+    // ── Counts ─────────────────────────
     Long countByClientCode(String clientCode);
 
     Long countByClientCodeAndStatus(String clientCode, String status);
 
+    // ── Analytics ─────────────────────────
     @Query("SELECT SUM(e.salary) FROM Employee e WHERE e.clientCode = :clientCode")
     Double getTotalSalary(@Param("clientCode") String clientCode);
 
-    @Query("SELECT new com.example.Start_up_crm_client_service.dto.DepartmentStats(e.department, COUNT(e)) " +
-            "FROM Employee e WHERE e.clientCode = :clientCode GROUP BY e.department")
+    @Query("SELECT new com.example.Start_up_crm_client_service.dto.DepartmentStats(" +
+            "e.department, COUNT(e)) " +
+            "FROM Employee e " +
+            "WHERE e.clientCode = :clientCode " +
+            "GROUP BY e.department")
     List<DepartmentStats> getDepartmentStats(@Param("clientCode") String clientCode);
 }
