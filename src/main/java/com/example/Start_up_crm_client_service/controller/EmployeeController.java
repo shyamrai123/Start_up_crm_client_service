@@ -1,7 +1,7 @@
 package com.example.Start_up_crm_client_service.controller;
 
-import com.example.Start_up_crm_client_service.dto.ClientHrResponse;
-import com.example.Start_up_crm_client_service.entity.Employee;
+import com.example.Start_up_crm_client_service.dto.AddEmployeeRequest;
+import com.example.Start_up_crm_client_service.dto.EmployeeResponse;
 import com.example.Start_up_crm_client_service.security.JwtPrincipal;
 import com.example.Start_up_crm_client_service.service.ClientHrService;
 import com.example.Start_up_crm_client_service.service.EmployeeService;
@@ -25,24 +25,24 @@ public class EmployeeController {
 
     @PostMapping("/add")
     @PreAuthorize("hasAuthority('ROLE_ORG')")
-    public ResponseEntity<?> addEmployee(
-            @RequestBody Employee employee,
+    public ResponseEntity<EmployeeResponse> addEmployee(
+            @RequestBody AddEmployeeRequest request,
             Authentication authentication) {
 
         Map<String, String> hrData = fetchHrData(authentication);
 
-        employee.setClientCode(hrData.get("clientCode"));
-        employee.setCompanyName(hrData.get("companyName"));
+        EmployeeResponse response = employeeService.addEmployee(
+                request,
+                hrData.get("clientCode"),
+                hrData.get("companyName")
+        );
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Employee added successfully",
-                "employee", employeeService.addEmployee(employee)
-        ));
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/all")
     @PreAuthorize("hasAuthority('ROLE_ORG')")
-    public ResponseEntity<List<Employee>> getEmployees(Authentication authentication) {
+    public ResponseEntity<List<EmployeeResponse>> getAll(Authentication authentication) {
 
         Map<String, String> hrData = fetchHrData(authentication);
 
@@ -56,38 +56,41 @@ public class EmployeeController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ORG')")
-    public ResponseEntity<Employee> getEmployee(
+    public ResponseEntity<EmployeeResponse> getById(
             @PathVariable Long id,
             Authentication authentication) {
 
         Map<String, String> hrData = fetchHrData(authentication);
 
         return ResponseEntity.ok(
-                employeeService.getByIdAndClientCode(id, hrData.get("clientCode"))
+                employeeService.getByIdAndClientCode(
+                        id,
+                        hrData.get("clientCode")
+                )
         );
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ORG')")
-    public ResponseEntity<?> updateEmployee(
+    public ResponseEntity<EmployeeResponse> update(
             @PathVariable Long id,
-            @RequestBody Employee employee,
+            @RequestBody AddEmployeeRequest request,
             Authentication authentication) {
 
         Map<String, String> hrData = fetchHrData(authentication);
 
-        employee.setClientCode(hrData.get("clientCode"));
-        employee.setCompanyName(hrData.get("companyName"));
-
-        return ResponseEntity.ok(Map.of(
-                "message", "Employee updated successfully",
-                "employee", employeeService.updateEmployee(id, employee, hrData.get("clientCode"))
-        ));
+        return ResponseEntity.ok(
+                employeeService.updateEmployee(
+                        id,
+                        request,
+                        hrData.get("clientCode")
+                )
+        );
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ORG')")
-    public ResponseEntity<?> deleteEmployee(
+    public ResponseEntity<String> delete(
             @PathVariable Long id,
             Authentication authentication) {
 
@@ -99,27 +102,24 @@ public class EmployeeController {
                 hrData.get("companyName")
         );
 
-        return ResponseEntity.ok(Map.of("message", "Employee deleted successfully"));
+        return ResponseEntity.ok("Employee deleted successfully");
     }
 
-    // ✅ FINAL FIXED METHOD
     private Map<String, String> fetchHrData(Authentication authentication) {
 
         Object principal = authentication.getPrincipal();
-
         String email;
 
         if (principal instanceof JwtPrincipal jwt) {
             email = jwt.getUsername();
         } else {
-            email = principal.toString(); // fallback
+            email = principal.toString();
         }
 
-        ClientHrResponse<Map<String, String>> response =
-                clientHrService.getHrByEmail(email);
+        var response = clientHrService.getHrByEmail(email);
 
         if (!response.isSuccess() || response.getData() == null) {
-            throw new RuntimeException("HR not found in AuthService for: " + email);
+            throw new RuntimeException("HR not found: " + email);
         }
 
         return response.getData();

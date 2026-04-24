@@ -1,17 +1,19 @@
 package com.example.Start_up_crm_client_service.service;
 
-import com.example.Start_up_crm_client_service.entity.Employee;
+import com.example.Start_up_crm_client_service.dto.AddEmployeeRequest;
+import com.example.Start_up_crm_client_service.dto.EmployeeResponse;
+
 import java.util.List;
 
 public interface EmployeeService {
 
-    Employee addEmployee(Employee employee);
+    EmployeeResponse addEmployee(AddEmployeeRequest request, String clientCode, String companyName);
 
-    List<Employee> getByClientCodeAndCompany(String clientCode, String companyName);
+    List<EmployeeResponse> getByClientCodeAndCompany(String clientCode, String companyName);
 
-    Employee getByIdAndClientCode(Long id, String clientCode);   // ✅ Added
+    EmployeeResponse getByIdAndClientCode(Long id, String clientCode);
 
-    Employee updateEmployee(Long id, Employee employee, String clientCode);  // ✅ Added
+    EmployeeResponse updateEmployee(Long id, AddEmployeeRequest request, String clientCode);
 
     void deleteEmployee(Long id, String clientCode, String companyName);
 }

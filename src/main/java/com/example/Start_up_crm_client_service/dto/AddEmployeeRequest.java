@@ -1,46 +1,36 @@
-package com.example.Start_up_crm_client_service.entity;
+package com.example.Start_up_crm_client_service.dto;
 
-import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
-@Entity
-@Table(name = "employees")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class Employee {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Data
+public class AddEmployeeRequest {
 
     // ── Basic Info ─────────────────────────
     private String firstName;
     private String lastName;
-    private String fullName;
     private String email;
     private String phone;
     private String gender;
     private String maritalStatus;
 
-    @Column(name = "date_of_birth")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate dateOfBirth;
 
     private String bloodGroup;
-
+    private String clientCode;
+    private String companyName;
     // ── Work Info ─────────────────────────
     private String department;
     private String designation;
     private String role;
     private Double salary;
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate joiningDate;
     private String status; // ACTIVE / INACTIVE
-    private String employeeCode;
-
     // ── Statutory ─────────────────────────
     private String panNumber;
     private String aadhaarNumber;
@@ -48,17 +38,7 @@ public class Employee {
     private String bankName;
     private String accountNumber;
     private String ifscCode;
-
-    // ── Documents (from master) ────────────
-    @Lob
-    @Column(columnDefinition = "LONGBLOB")
-    private byte[] aadhaarDocument;
-
-    @Lob
-    @Column(columnDefinition = "LONGBLOB")
-    private byte[] panDocument;
-
-    // ── Org Context ───────────────────────
-    private String clientCode;
-    private String companyName;
+    // ── Documents (Multipart Upload) ───────
+    private MultipartFile aadhaarDocument;
+    private MultipartFile panDocument;
 }
