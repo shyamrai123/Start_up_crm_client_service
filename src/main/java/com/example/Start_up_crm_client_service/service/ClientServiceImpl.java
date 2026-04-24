@@ -22,6 +22,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 
+import static com.example.Start_up_crm_client_service.entity.Client.*;
+
 @Service
 @RequiredArgsConstructor
 public class ClientServiceImpl implements ClientService {
