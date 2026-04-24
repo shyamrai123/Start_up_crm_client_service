@@ -22,7 +22,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 
 import java.util.List;
 
@@ -39,14 +38,14 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .cors(Customizer.withDefaults()) // ✅ ENABLE CORS
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req -> req
 
-                        // ✅ Allow preflight requests
+                        // ✅ Allow preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // ✅ Allow client register & login
+                        // ✅ Public APIs
                         .requestMatchers(
                                 "/api/client/**",
                                 "/api/client/login",
@@ -55,6 +54,21 @@ public class WebSecurityConfig {
                                 "/api/hr/signup"
                         ).permitAll()
 
+                        // ================= 🔥 EMPLOYEE Profile  APIs =================
+
+                        // Create employee (public)
+                        .requestMatchers(HttpMethod.POST, "/api/employees/profile").authenticated()
+
+                        // All employee endpoints (secured)
+                        .requestMatchers("/api/employees/**").authenticated()
+
+                        // 🔥 NEW PROFILE ENDPOINTS
+                        .requestMatchers("/api/employees/profile/**").authenticated()
+
+                        // ===================================================
+
+                        // Feign internal
+                        .requestMatchers("/internal/**").permitAll()
 
                         // Existing public endpoints
                         .requestMatchers(
@@ -63,10 +77,20 @@ public class WebSecurityConfig {
                                 "/api/v1/users/reset-password"
                         ).permitAll()
 
+                        // ================= 🔥 PROFILE APIs =================
+                        .requestMatchers("/api/profile/**").authenticated()
 
-                        // Protected endpoints
+                        // Permissions
+                        .requestMatchers("/api/v1/permissions/**")
+                        .hasAnyAuthority("ROLE_USER","ROLE_EMP","ROLE_ADMIN","ROLE_ORG")
+
+                        // Users
                         .requestMatchers("/api/v1/users/**")
-                        .hasAnyRole("USER", "ADMIN", "INSTRUCTOR", "ORG")
+                        .hasAnyRole("USER", "ADMIN", "INSTRUCTOR", "ORG","EMP")
+
+                        // Profile
+                        .requestMatchers("/api/v1/profile/**")
+                        .hasAnyRole("USER","ORG", "ADMIN")
 
                         .anyRequest().authenticated()
                 )
@@ -82,7 +106,7 @@ public class WebSecurityConfig {
                 .build();
     }
 
-    // ✅ CORS CONFIGURATION
+    // ================= CORS =================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
@@ -90,7 +114,7 @@ public class WebSecurityConfig {
 
         configuration.setAllowedOrigins(List.of("http://localhost:4200"));
         configuration.setAllowedMethods(
-                List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
         );
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -103,7 +127,7 @@ public class WebSecurityConfig {
         return source;
     }
 
-
+    // ================= BEANS =================
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {

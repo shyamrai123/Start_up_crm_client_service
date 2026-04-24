@@ -1,40 +1,57 @@
 package com.example.Start_up_crm_client_service.controller;
 
+import com.example.Start_up_crm_client_service.dto.ClientHrResponse;
 import com.example.Start_up_crm_client_service.dto.DashboardResponse;
-import com.example.Start_up_crm_client_service.entity.ClientHr;
-import com.example.Start_up_crm_client_service.repository.ClientHrRepository;
-import com.example.Start_up_crm_client_service.security.CustomUserDetails;
+import com.example.Start_up_crm_client_service.security.JwtPrincipal;
+import com.example.Start_up_crm_client_service.service.ClientHrService;
 import com.example.Start_up_crm_client_service.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
+@CrossOrigin("*")
 public class DashboardController {
+
     private final DashboardService dashboardService;
-    private final ClientHrRepository clientHrRepository;
+    private final ClientHrService clientHrService;
 
     @GetMapping("/summary")
     @PreAuthorize("hasAuthority('ROLE_ORG')")
     public ResponseEntity<DashboardResponse> getDashboard(Authentication authentication) {
 
-        CustomUserDetails userDetails =
-                (CustomUserDetails) authentication.getPrincipal();
+        String clientCode = getClientCode(authentication);
 
-        String email = userDetails.getUsername();
+        return ResponseEntity.ok(
+                dashboardService.getDashboardData(clientCode)
+        );
+    }
 
-        ClientHr hr = clientHrRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("HR not found"));
+    private String getClientCode(Authentication authentication) {
 
-        DashboardResponse response =
-                dashboardService.getDashboardData(hr.getClientCode());
+        Object principal = authentication.getPrincipal();
 
-        return ResponseEntity.ok(response);
+        String email;
+
+        if (principal instanceof JwtPrincipal jwt) {
+            email = jwt.getUsername();
+        } else {
+            email = principal.toString();
+        }
+
+        ClientHrResponse<Map<String, String>> response =
+                clientHrService.getHrByEmail(email);
+
+        if (!response.isSuccess() || response.getData() == null) {
+            throw new RuntimeException("HR not found in AuthService for: " + email);
+        }
+
+        return response.getData().get("clientCode");
     }
 }

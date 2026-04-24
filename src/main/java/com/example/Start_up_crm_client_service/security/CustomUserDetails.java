@@ -1,13 +1,12 @@
 package com.example.Start_up_crm_client_service.security;
 
-import com.example.Start_up_crm_client_service.entity.Role;
-import com.example.Start_up_crm_client_service.entity.User;
 import com.example.Start_up_crm_client_service.entity.ClientHr;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import javax.management.relation.Role;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -25,16 +24,7 @@ public class CustomUserDetails implements UserDetails {
     @Getter
     private final Set<Role> roles;
 
-    // ✅ Constructor for normal User
-    public CustomUserDetails(User user) {
-        this.id = user.getId();
-        this.username = user.getEmail();   // use email consistently
-        this.password = user.getPassword();
-        this.roles = user.getRoles();
-        this.authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName().name()))
-                .collect(Collectors.toList());
-    }
+
 
     // ✅ Constructor for HR
     public CustomUserDetails(ClientHr hr) {

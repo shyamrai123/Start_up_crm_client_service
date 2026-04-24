@@ -1,18 +1,15 @@
 package com.example.Start_up_crm_client_service.service;
 
 import com.example.Start_up_crm_client_service.entity.ClientHr;
-import com.example.Start_up_crm_client_service.entity.User;
 import com.example.Start_up_crm_client_service.repository.ClientHrRepository;
-import com.example.Start_up_crm_client_service.repository.UserRepository;
 import com.example.Start_up_crm_client_service.security.CustomUserDetails;
 import com.example.Start_up_crm_client_service.util.MessageConstant;
 import lombok.AllArgsConstructor;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import java.util.List;
+
 import java.util.Optional;
 
 
@@ -20,7 +17,6 @@ import java.util.Optional;
 @Service
 public class CustomUserDetailsServiceImpl implements UserDetailsService {
 
-    private final UserRepository userRepository;
     private final ClientHrRepository clientHrRepository;
 
     /**
@@ -36,13 +32,6 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
             throws UsernameNotFoundException {
 
         // 1️⃣ Normal users
-        Optional<User> user = userRepository.findByEmail(identifier)
-                .or(() -> userRepository.findByUsername(identifier))
-                .or(() -> userRepository.findByMobileNo(identifier));
-
-        if (user.isPresent()) {
-            return new CustomUserDetails(user.get());
-        }
 
         // 2️⃣ HR users
         Optional<ClientHr> hr = clientHrRepository.findByEmail(identifier);
@@ -54,5 +43,7 @@ public class CustomUserDetailsServiceImpl implements UserDetailsService {
         throw new UsernameNotFoundException(
                 MessageConstant.USER_NOT_FOUND_WITH_IDENTIFIER + identifier
         );
+
+
     }
 }

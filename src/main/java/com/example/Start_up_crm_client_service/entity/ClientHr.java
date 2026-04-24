@@ -9,7 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Table(
-        name = "client_hr",
+        name = "clienthr",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = {"email", "client_id"})
         }
