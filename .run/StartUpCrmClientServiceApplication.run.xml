@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="StartUpCrmClientServiceApplication" type="CompoundRunConfigurationType">
+    <toRun name="StartUpCrmClientServiceApplication" type="SpringBootApplicationConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>

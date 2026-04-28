@@ -3,8 +3,7 @@ package com.example.Start_up_crm_client_service.filter;
 import com.example.Start_up_crm_client_service.exception.JwtTokenException;
 import com.example.Start_up_crm_client_service.exception.JwtTokenExpiredException;
 import com.example.Start_up_crm_client_service.exception.JwtTokenParseException;
-import com.example.Start_up_crm_client_service.security.CustomUserDetails;
-import com.example.Start_up_crm_client_service.service.CustomUserDetailsServiceImpl;
+import com.example.Start_up_crm_client_service.security.JwtPrincipal;
 import com.example.Start_up_crm_client_service.util.JwtTokenUtil;
 import io.micrometer.common.lang.NonNull;
 import jakarta.servlet.FilterChain;
@@ -13,12 +12,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 @RequiredArgsConstructor
@@ -26,62 +27,77 @@ import java.util.Objects;
 public class JwtRequestFilter extends OncePerRequestFilter {
 
     private final JwtTokenUtil jwtTokenUtil;
-    private final CustomUserDetailsServiceImpl customUserDetailsService; // Change to CustomUserDetailsServiceImpl
-
 
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain)
             throws ServletException, IOException {
-        if (request.getRequestURI().startsWith("/auth/")) {
+
+        String path = request.getRequestURI(); // ✅ IMPORTANT FIX
+
+        // ✅ PUBLIC ENDPOINTS (BYPASS JWT)
+        if (path.startsWith("/auth/")
+                || path.contains("/api/client/login")
+                || path.contains("/api/client/register")
+                || path.contains("/api/hr/signup")
+                || path.contains("/api/hr/login")) {
+
             filterChain.doFilter(request, response);
             return;
         }
 
         String token = extractTokenFromRequest(request);
+
         try {
             if (Objects.nonNull(token) && isValidJwtFormat(token)) {
-                String username = jwtTokenUtil.extractUsername(token);
 
-//                if (request.getRequestURI().startsWith("/auth/")) {
-//                    filterChain.doFilter(request, response);
-//                    return;
-//                }
+                String email = jwtTokenUtil.extractUsername(token);
+                Long userId = jwtTokenUtil.extractUserId(token);
 
-                // Use a primitive boolean expression here
-                boolean isTokenValid = jwtTokenUtil.validateToken(token, username);
-                boolean isNoAuthentication = Objects.isNull(SecurityContextHolder.getContext().getAuthentication());
+                JwtPrincipal principal = new JwtPrincipal(userId, email);
+
+                boolean isTokenValid = jwtTokenUtil.validateToken(token, email);
+                boolean isNoAuthentication =
+                        SecurityContextHolder.getContext().getAuthentication() == null;
 
                 if (isTokenValid && isNoAuthentication) {
-                    CustomUserDetails userDetails = (CustomUserDetails) customUserDetailsService.loadUserByUsername(username);
 
-                    if (userDetails != null) {
-                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
-                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    List<String> roles = jwtTokenUtil.extractRoles(token);
 
-                        SecurityContextHolder.getContext().setAuthentication(authentication); // Authentication ONLY
-                    }
+                    List<SimpleGrantedAuthority> authorities = roles.stream()
+                            .map(SimpleGrantedAuthority::new)
+                            .toList();
+
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    principal,
+                                    null,
+                                    authorities
+                            );
+
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
         } catch (JwtTokenExpiredException ex) {
-            String errorMessage = "JWT Token Expired: The token has expired. Expiration time: " + ex.getMessage();
-            logger.error(errorMessage);
-            sendErrorResponse(response, errorMessage, HttpServletResponse.SC_UNAUTHORIZED);
+            sendErrorResponse(response, "JWT Token Expired", HttpServletResponse.SC_UNAUTHORIZED);
             return;
         } catch (JwtTokenException | JwtTokenParseException ex) {
-            logger.warn("JWT Token Error: " + ex.getMessage());
-            sendErrorResponse(response, ex.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(response, "Invalid JWT Token", HttpServletResponse.SC_BAD_REQUEST);
             return;
         } catch (Exception ex) {
-            logger.warn("Failed to authenticate user with the token: " + token, ex);
             sendErrorResponse(response, "Authentication Failed", HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
+
         filterChain.doFilter(request, response);
     }
 
-
-    private void sendErrorResponse(HttpServletResponse response, String message, int statusCode) throws IOException {
+    private void sendErrorResponse(HttpServletResponse response,
+                                   String message, int statusCode) throws IOException {
         response.setStatus(statusCode);
         response.setContentType("application/json");
         response.getWriter().write("{\"message\": \"" + message + "\"}");

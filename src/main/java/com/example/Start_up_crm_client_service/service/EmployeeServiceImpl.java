@@ -4,11 +4,9 @@ import com.example.Start_up_crm_client_service.dto.AddEmployeeRequest;
 import com.example.Start_up_crm_client_service.dto.EmployeeResponse;
 import com.example.Start_up_crm_client_service.entity.Employee;
 import com.example.Start_up_crm_client_service.repository.EmployeeRepository;
-import com.example.Start_up_crm_client_service.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,120 +16,149 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
 
+    // ───────────────────────── CREATE ─────────────────────────
     @Override
-    public String addEmployee(AddEmployeeRequest request) {
+    public EmployeeResponse addEmployee(
+            AddEmployeeRequest request,
+            String clientCode,
+            String companyName) {
 
-        try {
-            Employee employee = mapToEntity(new Employee(), request);
-            employeeRepository.save(employee);
-            return "Employee added successfully";
+        Employee employee = mapToEntity(request);
 
-        } catch (Exception e) {
-            e.printStackTrace(); // Shows real error in console
-            throw new RuntimeException("Error adding employee: " + e.getMessage());
-        }
+        employee.setClientCode(clientCode);
+        employee.setCompanyName(companyName);
+
+        return mapToResponse(employeeRepository.save(employee));
     }
 
+    // ───────────────────────── READ ALL ─────────────────────────
     @Override
-    public List<EmployeeResponse> getAllEmployees() {
+    public List<EmployeeResponse> getByClientCodeAndCompany(
+            String clientCode,
+            String companyName) {
 
-        return employeeRepository.findAll()
+        return employeeRepository
+                .findByClientCodeAndCompanyName(clientCode, companyName)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
+    // ───────────────────────── GET BY ID ─────────────────────────
     @Override
-    public EmployeeResponse getEmployeeById(Long id) {
+    public EmployeeResponse getByIdAndClientCode(Long id, String clientCode) {
 
-        Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+        Employee emp = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        return mapToResponse(employee);
+        if (!emp.getClientCode().equals(clientCode)) {
+            throw new RuntimeException("Access denied");
+        }
+
+        return mapToResponse(emp);
     }
 
+    // ───────────────────────── UPDATE ─────────────────────────
     @Override
-    public String updateEmployee(Long id, AddEmployeeRequest request) {
+    public EmployeeResponse updateEmployee(
+            Long id,
+            AddEmployeeRequest request,
+            String clientCode) {
+
+        Employee emp = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        if (!emp.getClientCode().equals(clientCode)) {
+            throw new RuntimeException("Access denied");
+        }
+
+        updateEntity(emp, request);
+
+        return mapToResponse(employeeRepository.save(emp));
+    }
+
+    // ───────────────────────── DELETE ─────────────────────────
+    @Override
+    public void deleteEmployee(
+            Long id,
+            String clientCode,
+            String companyName) {
+
+        Employee emp = employeeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        if (!emp.getClientCode().equals(clientCode) ||
+                !emp.getCompanyName().equals(companyName)) {
+            throw new RuntimeException("Access denied");
+        }
+
+        employeeRepository.delete(emp);
+    }
+
+    // ───────────────────────── MAPPER: REQUEST → ENTITY ─────────────────────────
+    private Employee mapToEntity(AddEmployeeRequest r) {
+
+        Employee e = new Employee();
+
+        e.setFirstName(r.getFirstName());
+        e.setLastName(r.getLastName());
+        e.setEmail(r.getEmail());
+        e.setPhone(r.getPhone());
+        e.setDepartment(r.getDepartment());
+        e.setDesignation(r.getDesignation());
+        e.setRole(r.getRole());
+        e.setSalary(r.getSalary());
+        e.setJoiningDate(r.getJoiningDate());
+        e.setStatus(r.getStatus());
+
+        e.setPanNumber(r.getPanNumber());
+        e.setAadhaarNumber(r.getAadhaarNumber());
+        e.setUan(r.getUan());
+        e.setBankName(r.getBankName());
+        e.setAccountNumber(r.getAccountNumber());
+        e.setIfscCode(r.getIfscCode());
 
         try {
-            Employee employee = employeeRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
+            if (r.getAadhaarDocument() != null)
+                e.setAadhaarDocument(r.getAadhaarDocument().getBytes());
 
-            mapToEntity(employee, request);
+            if (r.getPanDocument() != null)
+                e.setPanDocument(r.getPanDocument().getBytes());
 
-            employeeRepository.save(employee);
-
-            return "Employee updated successfully";
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error updating employee: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public String deleteEmployee(Long id) {
-
-        Employee employee = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found with id: " + id));
-
-        employeeRepository.delete(employee);
-
-        return "Employee deleted successfully";
-    }
-
-    // 🔥 Common Mapping Method
-    private Employee mapToEntity(Employee employee, AddEmployeeRequest request) throws Exception {
-
-        employee.setFirstName(request.getFirstName());
-        employee.setLastName(request.getLastName());
-        employee.setEmail(request.getEmail());
-        employee.setPhone(request.getPhone());
-        employee.setDepartment(request.getDepartment());
-        employee.setDesignation(request.getDesignation());
-        employee.setRole(request.getRole());
-        employee.setSalary(request.getSalary());
-        employee.setJoiningDate(request.getJoiningDate());
-        employee.setActive(request.getActive());
-        employee.setAddress(request.getAddress());
-
-        // ✅ Aadhaar Upload
-        if (request.getAadhaarDocument() != null &&
-                !request.getAadhaarDocument().isEmpty()) {
-
-            employee.setAadhaarDocument(
-                    request.getAadhaarDocument().getBytes()
-            );
+        } catch (Exception ex) {
+            throw new RuntimeException("File processing error");
         }
 
-        // ✅ PAN Upload
-        if (request.getPanDocument() != null &&
-                !request.getPanDocument().isEmpty()) {
-
-            employee.setPanDocument(
-                    request.getPanDocument().getBytes()
-            );
-        }
-
-        return employee;
+        return e;
     }
 
-    private EmployeeResponse mapToResponse(Employee emp) {
+    // ───────────────────────── UPDATE MAPPER ─────────────────────────
+    private void updateEntity(Employee e, AddEmployeeRequest r) {
+
+        if (r.getFirstName() != null) e.setFirstName(r.getFirstName());
+        if (r.getLastName() != null) e.setLastName(r.getLastName());
+        if (r.getPhone() != null) e.setPhone(r.getPhone());
+        if (r.getDepartment() != null) e.setDepartment(r.getDepartment());
+        if (r.getDesignation() != null) e.setDesignation(r.getDesignation());
+        if (r.getRole() != null) e.setRole(r.getRole());
+        if (r.getSalary() != null) e.setSalary(r.getSalary());
+        if (r.getStatus() != null) e.setStatus(r.getStatus());
+    }
+
+    // ───────────────────────── RESPONSE MAPPER ─────────────────────────
+    private EmployeeResponse mapToResponse(Employee e) {
 
         return EmployeeResponse.builder()
-                .id(emp.getId())
-                .firstName(emp.getFirstName())
-                .lastName(emp.getLastName())
-                .email(emp.getEmail())
-                .phone(emp.getPhone())
-                .department(emp.getDepartment())
-                .designation(emp.getDesignation())
-                .role(emp.getRole())
-                .salary(emp.getSalary())
-                .joiningDate(emp.getJoiningDate() != null ?
-                        LocalDate.parse(emp.getJoiningDate().toString()) : null)
-                .active(emp.getActive())
-                .address(emp.getAddress())
+                .id(e.getId())
+                .firstName(e.getFirstName())
+                .lastName(e.getLastName())
+                .email(e.getEmail())
+                .phone(e.getPhone())
+                .department(e.getDepartment())
+                .designation(e.getDesignation())
+                .role(e.getRole())
+                .salary(e.getSalary())
+                .joiningDate(e.getJoiningDate())
                 .build();
     }
 }

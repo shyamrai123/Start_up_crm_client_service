@@ -2,9 +2,7 @@ package com.example.Start_up_crm_client_service.config;
 
 import com.example.Start_up_crm_client_service.filter.JwtRequestFilter;
 import com.example.Start_up_crm_client_service.service.CustomUserDetailsServiceImpl;
-import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -21,75 +19,124 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import javax.crypto.SecretKey;
-import java.util.Base64;
+import java.util.List;
 
 @RequiredArgsConstructor
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity()
+@EnableMethodSecurity
 public class WebSecurityConfig {
 
-    /**
-     * Custom user details service for managing user-related data.
-     */
     private final CustomUserDetailsServiceImpl customUserDetailsService;
-
-    /**
-     * Filter to handle JWT authentication requests.
-     */
     private final JwtRequestFilter jwtRequestFilter;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
-
-
-
-
-
-
-
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                //  .cors(Customizer.withDefaults())
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req -> req
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ✅ this line
-                        .requestMatchers("/auth/**",
+
+                        // ✅ Allow preflight
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // ✅ Public APIs
+                        .requestMatchers(
+                                "/api/client/**",
+                                "/api/client/login",
+                                "/api/client/signup",
+                                "/api/hr/login",
+                                "/api/hr/signup"
+                        ).permitAll()
+
+                        // ================= 🔥 EMPLOYEE Profile  APIs =================
+
+                        // Create employee (public)
+                        .requestMatchers(HttpMethod.POST, "/api/employees/profile").authenticated()
+
+                        // All employee endpoints (secured)
+                        .requestMatchers("/api/employees/**").authenticated()
+
+                        // 🔥 NEW PROFILE ENDPOINTS
+                        .requestMatchers("/api/employees/profile/**").authenticated()
+
+                        // ===================================================
+
+                        // Feign internal
+                        .requestMatchers("/internal/**").permitAll()
+
+                        // Existing public endpoints
+                        .requestMatchers(
+                                "/auth/**",
                                 "/api/v1/users/request-password-reset",
-                                "/api/v1/users/reset-password").permitAll()
-                        .requestMatchers("/api/v1/users/**") .hasAnyRole("USER", "ADMIN", "INSTRUCTOR","ORG")
-                        .anyRequest().authenticated())
+                                "/api/v1/users/reset-password"
+                        ).permitAll()
+
+                        // ================= 🔥 PROFILE APIs =================
+                        .requestMatchers("/api/profile/**").authenticated()
+
+                        // Permissions
+                        .requestMatchers("/api/v1/permissions/**")
+                        .hasAnyAuthority("ROLE_USER","ROLE_EMP","ROLE_ADMIN","ROLE_ORG")
+
+                        // Users
+                        .requestMatchers("/api/v1/users/**")
+                        .hasAnyRole("USER", "ADMIN", "INSTRUCTOR", "ORG","EMP")
+
+                        // Profile
+                        .requestMatchers("/api/v1/profile/**")
+                        .hasAnyRole("USER","ORG", "ADMIN")
+
+                        .anyRequest().authenticated()
+                )
                 .oauth2Login(Customizer.withDefaults())
                 .userDetailsService(customUserDetailsService)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exceptionHandling -> exceptionHandling
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .authenticationEntryPoint(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                         .accessDeniedHandler(customAccessDeniedHandler))
                 .build();
     }
 
-    /**
-     * Provides a password encoder for hashing passwords using BCrypt.
-     *
-     * @return a BCryptPasswordEncoder instance
-     */
+    // ================= CORS =================
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        configuration.setAllowedOrigins(List.of("http://localhost:4200"));
+        configuration.setAllowedMethods(
+                List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+        );
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
+    }
+
+    // ================= BEANS =================
+
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * Configures the authentication manager from the provided configuration.
-     *
-     * @param configuration the authentication configuration
-     * @return the configured authentication manager
-     * @throws Exception if any error occurs during configuration
-     */
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
 }

@@ -7,4 +7,5 @@ public class ClientLoginRequest {
 
     private String email;
     private String password;
+    private String clientCode;
 }

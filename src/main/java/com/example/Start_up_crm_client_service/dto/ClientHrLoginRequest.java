@@ -5,6 +5,6 @@ import lombok.Data;
 @Data
 public class ClientHrLoginRequest {
     private String email;
+    private String clientCode;
     private String password;
-    private Long clientId;
 }

@@ -1,10 +1,16 @@
 package com.example.Start_up_crm_client_service.dto;
 
-public class ClientHrResponse {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    private Long hrId;
-    private String fullName;
-    private String email;
-    private Long clientId;
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class ClientHrResponse<T> {
+
+    private int code;
+    private boolean success;
     private String message;
+    private T data;   // ✅ FIXED
 }

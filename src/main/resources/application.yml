@@ -1,7 +1,6 @@
-
 spring:
   application:
-    name: Start_up_crm_client_service
+    name: client-service
 
   servlet:
     multipart:
@@ -13,8 +12,8 @@ spring:
       client:
         registration:
           google:
-            client-id: "62488757571-jn5d1cd162cc8dl6iuel5thihe3r2bjb.apps.googleusercontent.com"
-            client-secret: "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"
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: profile, email
             redirect-uri: http://localhost:8080/login/oauth2/code/google
             authorization-grant-type: authorization_code
@@ -33,8 +32,8 @@ spring:
 
   datasource:
     url: jdbc:mysql://localhost:3306/startup_crm_client
-    username: "root"
-    password: "user"
+    username: root
+    password: user
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -42,12 +41,16 @@ spring:
       ddl-auto: update
     show-sql: false
     open-in-view: false
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
 
   mail:
     host: smtp.gmail.com
     port: 587
-    username: "shaikjeelan533526@gmail.com"
-    password: "skyi gvsk knfu oopg"
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -56,7 +59,7 @@ spring:
             enable: true
 
 jwt:
-  secretKey: JcwXOFz8FiwKotBV9t4NY8SNNvm0dMsTyOMXGrbBg9Y=
+  secretKey: ${JWT_SECRET}
   expirationMs: 3600000
   refreshExpirationMs: 86400000
 
@@ -69,7 +72,7 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka/ # to register this service with service registry..
+      defaultZone: http://localhost:8761/eureka/
 
 debug: false
 

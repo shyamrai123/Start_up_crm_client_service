@@ -3,11 +3,11 @@ package com.example.Start_up_crm_client_service.controller;
 import com.example.Start_up_crm_client_service.dto.ApiResponse;
 import com.example.Start_up_crm_client_service.dto.ClientLoginRequest;
 import com.example.Start_up_crm_client_service.dto.ClientSignupRequest;
+import com.example.Start_up_crm_client_service.feign.AuthServiceClient;
 import com.example.Start_up_crm_client_service.service.ClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -17,40 +17,25 @@ import java.util.Map;
 public class ClientController {
 
     private final ClientService clientService;
+    private final AuthServiceClient authServiceClient;
 
-
-
-//    @PostMapping("/register")
-//    public ResponseEntity<ApiResponse<Map<String, String>>> registerClient(
-//            @RequestBody ClientSignupRequest request) {
-//
-//        // request.certificatePath and request.logoPath should already contain uploaded file paths
-//        ApiResponse<Map<String, String>> response = clientService.registerClient(request);
-//
-//        return ResponseEntity.status(response.getCode()).body(response);
-//    }
-
-
-//    @PostMapping(value = "/register", consumes = "multipart/form-data")
-//    public ResponseEntity<ApiResponse<Map<String, String>>> registerClient(
-//            @ModelAttribute ClientSignupRequest request) {
-//
-//        ApiResponse<Map<String, String>> response = clientService.registerClient(request);
-//        return ResponseEntity.status(response.getCode()).body(response);
-//    }
-
+    // ── REGISTER ─────────────────────────
     @PostMapping(value = "/register", consumes = "multipart/form-data")
-    public ApiResponse signup(
+    public ResponseEntity<ApiResponse<?>> signup(
             @ModelAttribute ClientSignupRequest request) {
 
-        return clientService.registerClient(request);
+        ApiResponse<?> response = clientService.registerClient(request);
+        return ResponseEntity.status(response.getCode()).body(response);
     }
 
+    // ── LOGIN ─────────────────────────────
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<Map<String, String>>> loginClient(
             @RequestBody ClientLoginRequest request) {
 
-        return ResponseEntity.ok(clientService.loginClient(request));
-    }
+        ApiResponse<Map<String, String>> response =
+                clientService.loginClient(request);
 
+        return ResponseEntity.status(response.getCode()).body(response);
+    }
 }
