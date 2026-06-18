@@ -49,8 +49,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: ${MAIL_USERNAME:raishyamkumar21@gmail.com}
+    password: ${MAIL_PASSWORD:jkjw vfmn yowa lytn}
     properties:
       mail:
         smtp:
@@ -59,7 +59,7 @@ spring:
             enable: true
 
 jwt:
-  secretKey: ${JWT_SECRET}
+  secretKey: ${JWT_SECRET:tIPV1T46thqNjLMQaQ20kg8J59VU/qvm5DrYny7eHmk=}
   expirationMs: 3600000
   refreshExpirationMs: 86400000
 
